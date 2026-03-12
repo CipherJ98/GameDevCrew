@@ -2,9 +2,6 @@ from openai import OpenAI
 import os
 
 class GPTAgent:
-    """
-    GPT handles: copywriting, Steam descriptions, devlog drafts, marketing content
-    """
     def __init__(self):
         self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
         self.model = "gpt-4o"
@@ -18,15 +15,21 @@ You specialize in:
 Keep tone enthusiastic but authentic — indie game players can smell corporate speak.
 Always ask yourself: would a real gamer be excited reading this?"""
 
-    def run(self, task: str, context: str = "") -> str:
-        full_prompt = f"{context}\n\nTask: {task}" if context else task
+    def run(self, task: str, history: list = None) -> str:
+        messages = [{"role": "system", "content": self.system_prompt}]
+        
+        if history:
+            for msg in history[:-1]:
+                messages.append({
+                    "role": msg["role"],
+                    "content": msg["content"]
+                })
+        
+        messages.append({"role": "user", "content": task})
         
         response = self.client.chat.completions.create(
             model=self.model,
-            messages=[
-                {"role": "system", "content": self.system_prompt},
-                {"role": "user", "content": full_prompt}
-            ],
+            messages=messages,
             max_tokens=2048
         )
         return response.choices[0].message.content
