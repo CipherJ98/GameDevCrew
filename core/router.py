@@ -7,39 +7,47 @@ class AgentType(Enum):
     ALL = "all"
 
 class Router:
-    """
-    Analyzes the user's task and decides which agent(s) to call.
-    This is the brain of the orchestrator.
-    """
-
-    # Keywords that signal each agent
-    CLAUDE_KEYWORDS = [
-        "code", "script", "bug", "fix", "debug", "c#", "unity", "error",
-        "implement", "function", "class", "component", "shader", "coroutine",
-        "optimize", "performance", "architecture", "refactor", "monobehaviour"
-    ]
-
-    GPT_KEYWORDS = [
-        "write", "description", "copy", "marketing", "steam", "tagline",
-        "devlog", "blog", "post", "announcement", "pitch", "press kit",
-        "email", "content", "story", "narrative", "lore", "name"
-    ]
-
-    GEMINI_KEYWORDS = [
-        "search", "find", "research", "asset", "plugin", "package", "docs",
-        "documentation", "tutorial", "how to", "what is", "recommend",
-        "best", "compare", "latest", "update", "version", "competitor"
-    ]
+    def __init__(self):
+        self.claude_keywords = [
+            "code", "script", "debug", "fix", "error", "bug",
+            "c#", "unity", "function", "class", "implement",
+            "architecture", "pattern", "optimize", "refactor"
+        ]
+        self.gpt_keywords = [
+            "write", "description", "steam", "marketing", "copy",
+            "devlog", "announcement", "pitch", "press", "trailer",
+            "tagline", "email", "post", "blog", "content"
+        ]
+        self.gemini_keywords = [
+            "search", "find", "research", "asset", "docs",
+            "documentation", "tutorial", "recommend", "latest",
+            "compare", "what is", "how does", "look up"
+        ]
 
     def route(self, task: str) -> tuple[AgentType, str]:
-        """
-        Returns (AgentType, reason_string)
-        """
-        task_lower = task.lower()
+        task_lower = task.lower().strip()
 
-        claude_score = sum(1 for kw in self.CLAUDE_KEYWORDS if kw in task_lower)
-        gpt_score = sum(1 for kw in self.GPT_KEYWORDS if kw in task_lower)
-        gemini_score = sum(1 for kw in self.GEMINI_KEYWORDS if kw in task_lower)
+        # Manual override — check for @agent syntax first
+        if task_lower.startswith("@claude"):
+            clean_task = task[7:].strip()
+            return AgentType.CLAUDE, f"Manual override → claude"
+
+        if task_lower.startswith("@gpt"):
+            clean_task = task[4:].strip()
+            return AgentType.GPT, f"Manual override → gpt"
+
+        if task_lower.startswith("@gemini"):
+            clean_task = task[7:].strip()
+            return AgentType.GEMINI, f"Manual override → gemini"
+
+        if task_lower.startswith("@all"):
+            clean_task = task[4:].strip()
+            return AgentType.ALL, f"Manual override → all agents"
+
+        # Keyword scoring
+        claude_score = sum(1 for kw in self.claude_keywords if kw in task_lower)
+        gpt_score = sum(1 for kw in self.gpt_keywords if kw in task_lower)
+        gemini_score = sum(1 for kw in self.gemini_keywords if kw in task_lower)
 
         scores = {
             AgentType.CLAUDE: claude_score,
@@ -49,14 +57,8 @@ class Router:
 
         max_score = max(scores.values())
 
-        # If no clear signal, default to Claude (most versatile)
         if max_score == 0:
             return AgentType.CLAUDE, "No specific keywords detected → defaulting to Claude"
 
-        # If it's a tie between multiple agents, use ALL
-        top_agents = [agent for agent, score in scores.items() if score == max_score]
-        if len(top_agents) > 1:
-            return AgentType.ALL, f"Multiple agents needed (scores: C={claude_score} G={gpt_score} Ge={gemini_score})"
-
-        winner = max(scores, key=scores.get)
-        return winner, f"Routed to {winner.value} (scores: C={claude_score} GPT={gpt_score} Ge={gemini_score})"
+        best = max(scores, key=lambda k: scores[k])
+        return best, f"Routed to {best.value} (scores: C={claude_score} GPT={gpt_score} Ge={gemini_score})"

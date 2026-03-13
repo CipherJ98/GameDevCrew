@@ -36,6 +36,14 @@ class Orchestrator:
     def run(self, task: str, verbose: bool = True) -> dict:
         agent_type, routing_reason = self.router.route(task)
 
+        # 检测并剥离前缀
+        prefixes = ["@claude", "@gpt", "@gemini", "@all"]
+        clean_task = task
+        for prefix in prefixes:
+            if task.lower().startswith(prefix):
+                clean_task = task[len(prefix):].strip()
+                break
+
         if verbose:
             print(f"\n[Router] {routing_reason}")
 
@@ -46,7 +54,7 @@ class Orchestrator:
                 if verbose:
                     print(f"[{name.upper()}] Running...")
                 self.memory.add(name, "user", task)
-                response = agent.run(task, history=self.memory.get(name))
+                response = agent.run(clean_task, history=self.memory.get(name))
                 self.memory.add(name, "assistant", response)
                 results[name] = response
         else:
@@ -54,7 +62,7 @@ class Orchestrator:
             if verbose:
                 print(f"[{name.upper()}] Running...")
             self.memory.add(name, "user", task)
-            response = agent.run(task, history=self.memory.get(name))
+            response = agent.run(clean_task, history=self.memory.get(name))
             self.memory.add(name, "assistant", response)
             results[name] = response
 
