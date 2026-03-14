@@ -54,7 +54,12 @@ class Orchestrator:
                 if verbose:
                     print(f"[{name.upper()}] Running...")
                 self.memory.add(name, "user", task)
-                response = agent.run(clean_task, history=self.memory.get(name))
+                try:
+                    response = agent.run(clean_task,history = self.memory.get(name))
+                except Exception as e:
+                    response = f"[{name.upper()} Error] Agent failed: {str(e)}"
+                    print(f"[WARNING] {name} agent encountered an error: {type(e).__name__}")
+                    
                 self.memory.add(name, "assistant", response)
                 results[name] = response
         else:
@@ -62,7 +67,11 @@ class Orchestrator:
             if verbose:
                 print(f"[{name.upper()}] Running...")
             self.memory.add(name, "user", task)
-            response = agent.run(clean_task, history=self.memory.get(name))
+            try:
+                response = agent.run(clean_task,history = self.memory.get(name))
+            except Exception as e:
+                response = f"[{name.upper()} Error] Agent failed: {str(e)}"
+                print(f"[WARNING] {name} agent encountered an error: {type(e).__name__}")
             self.memory.add(name, "assistant", response)
             results[name] = response
 
