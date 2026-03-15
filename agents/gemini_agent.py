@@ -3,7 +3,8 @@ import os
 
 class GeminiAgent:
     def __init__(self):
-        self.client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+        api_key = os.getenv("GEMINI_API_KEY")
+        self.client = genai.Client(api_key=api_key) if api_key and api_key != "placeholder" else None
         self.system_prompt = """You are a game development research assistant.
 You specialize in:
 - Finding solutions in Unity documentation and forums
@@ -16,6 +17,9 @@ Always cite where developers can find more information.
 Prioritize official Unity docs and well-known community sources."""
 
     def run(self, task: str, history: list = None) -> str:
+        if not self.client:
+            return "[Gemini] API key not configured. Set GEMINI_API_KEY in .env"
+
         contents = []
         
         if history:
