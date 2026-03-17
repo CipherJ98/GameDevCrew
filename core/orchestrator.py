@@ -1,6 +1,7 @@
 from agents import ClaudeAgent, GPTAgent, GeminiAgent
 from core.router import Router, AgentType
 from utils.formatter import format_response
+import time
 
 class SessionMemory:
     def __init__(self):
@@ -62,6 +63,7 @@ class Orchestrator:
                     
                 self.memory.add(name, "assistant", response)
                 results[name] = response
+                time.sleep(2)
         else:
             name, agent = self.agent_map[agent_type]
             if verbose:
