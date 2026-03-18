@@ -36,7 +36,7 @@ Prioritize official Unity docs and well-known community sources."""
         })
         
         response = self.client.models.generate_content(
-            model="models/gemini-2.0-flash",
+            model="models/gemini-2.5-flash",
             contents=contents
         )
         return response.text
