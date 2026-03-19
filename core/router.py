@@ -14,9 +14,9 @@ class Router:
             "architecture", "pattern", "optimize", "refactor"
         ]
         self.gpt_keywords = [
-            "write", "description", "steam", "marketing", "copy",
-            "devlog", "announcement", "pitch", "press", "trailer",
-            "tagline", "email", "post", "blog", "content"
+            "plan", "milestone", "sprint", "roadmap", "schedule",
+            "priority", "scope", "mvp", "breakdown", "timeline",
+            "deadline", "production", "pipeline", "backlog", "task"
         ]
         self.gemini_keywords = [
             "search", "find", "research", "asset", "docs",

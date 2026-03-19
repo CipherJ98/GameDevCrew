@@ -2,7 +2,7 @@
 GameDevCrew — Your AI Game Development Team
 ============================================
 Claude   → Code, C# scripts, Unity architecture
-GPT      → Copywriting, Steam descriptions, marketing
+GPT      → Production planning, milestones, roadmaps
 Gemini   → Research, Unity docs, asset recommendations
 
 Usage:
@@ -37,7 +37,7 @@ def print_banner():
 ╚══════════════════════════════════════╝[/bold cyan]
 
 [cyan]Claude[/cyan]  → Code & Unity architecture
-[green]GPT[/green]     → Copywriting & marketing  
+[green]GPT[/green]     → Production planning & milestones  
 [yellow]Gemini[/yellow]  → Research & documentation
 
 [dim]Type 'quit' to exit | 'help' for example tasks[/dim]
@@ -51,9 +51,10 @@ EXAMPLE_TASKS = """
   • Debug this error: NullReferenceException in PlayerController
   • How do I implement object pooling in Unity?
 
-[green]Writing (→ GPT):[/green]
-  • Write a Steam description for my 2D platformer about a time-traveling cat
-  • Create a devlog post announcing my new enemy AI system
+[green]Planning (→ GPT):[/green]
+  • Break down a free-flow combat system into weekly milestones
+  • Create a 2-week sprint plan for my Unity army battle prototype
+  • What should I build first for my roguelike MVP?
 
 [yellow]Research (→ Gemini):[/yellow]
   • What are the best Unity assets for procedural generation?

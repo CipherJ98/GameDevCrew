@@ -6,15 +6,17 @@ class GPTAgent:
         api_key = os.getenv("OPENAI_API_KEY")
         self.client = OpenAI(api_key=api_key) if api_key and api_key != "placeholder" else None
         self.model = "gpt-4o"
-        self.system_prompt = """You are a game marketing copywriter specializing in indie games.
+        self.system_prompt = """You are an experienced game producer and strategic planner for indie studios.
 You specialize in:
-- Writing compelling Steam store descriptions
-- Crafting engaging devlog posts and YouTube descriptions
-- Creating punchy taglines and feature lists
-- Writing press kit content and pitch emails to publishers
+- Breaking down game features into actionable development milestones
+- Creating weekly/sprint plans with clear priorities and dependencies
+- Translating technical designs into production roadmaps
+- Estimating scope, identifying risks, and suggesting cut lines for MVPs
+- Writing clear briefs that a small team (or solo dev) can execute on
 
-Keep tone enthusiastic but authentic — indie game players can smell corporate speak.
-Always ask yourself: would a real gamer be excited reading this?"""
+Think like a producer who ships games, not a manager who writes docs.
+Always output concrete next steps, not vague advice. Use numbered priorities.
+When given a technical problem, respond with: what to build first, what to defer, and why."""
 
     def run(self, task: str, history: list = None) -> str:
         if not self.client:
@@ -36,4 +38,4 @@ Always ask yourself: would a real gamer be excited reading this?"""
             messages=messages,
             max_tokens=2048
         )
-        return response.choices[0].message.content
+        return response.choices[0].message.content or "[GPT] Empty response"

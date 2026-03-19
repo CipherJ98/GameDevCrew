@@ -14,7 +14,7 @@ AGENT_COLORS = {
 
 AGENT_LABELS = {
     "claude": "🤖 CLAUDE — Code & Architecture",
-    "gpt": "✍️  GPT — Copywriting & Marketing",
+    "gpt": "✍️  GPT — Production & Planning",
     "gemini": "🔍 GEMINI — Research & Docs",
 }
 
@@ -45,5 +45,5 @@ def format_response(result: dict):
         ))
         
         # Stream content line by line
-        stream_text(response, delay=0.045)
+        stream_text(response, delay=0.07)
         console.print()
