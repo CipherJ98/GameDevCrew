@@ -144,6 +144,15 @@ class PipelineExecutor:
             return None
 
         return result["data"]
+    
+    # ── Art Asset Validation ────────────────────────────────
+    def run_asset_validation(self,folder_path:str):
+        from agents.asset_validator_agent import AssetValidatorAgent
+        console.print(f"\n[dim]folder_path received: '{folder_path}'[/dim]") 
+        console.print("\n[bold cyan][AssetValidation Pipeline][/bold cyan] Scanning folder...")
+        agent = AssetValidatorAgent()
+        agent.run(folder_path)
+        return agent.run(folder_path)
 
     # ── Review / Save methods ────────────────────────────────
 

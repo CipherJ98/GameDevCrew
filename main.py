@@ -327,6 +327,40 @@ def _review_art_brief(data: dict):
     else:
         console.print("❌ Rejected. Nothing saved.")
 
+def _display_validation_result(result: dict):
+    if not result.get("success"):
+        console.print(f"[red]{result.get('error')}[/red]")
+        return
+
+    s = result["summary"]
+    console.print(Panel(
+        f"[bold]Total:[/bold] {s['total']}  "
+        f"[green]Passed: {s['passed']}[/green]  "
+        f"[red]Failed: {s['failed']}[/red]",
+        title="[bold white]🔍 Asset Validation Report[/bold white]",
+        border_style="cyan",
+        padding=(1, 2),
+    ))
+
+    for r in result["results"]:
+        status = "[green]✓ PASS[/green]" if r["passed"] else "[red]✗ FAIL[/red]"
+        console.print(f"\n  {status} [bold]{r['file']}[/bold]")
+        info = r.get("info", {})
+        if info.get("width"):
+            console.print(f"    [dim]{info['width']}x{info['height']} | "
+                         f"{info.get('color_mode','?')} | "
+                         f"{info.get('size_kb','?')}KB[/dim]")
+        for issue in r.get("issues", []):
+            console.print(f"    [red]• {issue}[/red]")
+
+    if result.get("suggestions"):
+        console.print(Panel(
+            result["suggestions"],
+            title="[bold yellow]💡 修改建议[/bold yellow]",
+            border_style="yellow",
+            padding=(1, 2),
+        ))
+
 
 def _ask_choice(prompt_text: str, valid: list[str]) -> str:
     """Keep asking until user gives a valid single-char choice."""
@@ -367,6 +401,11 @@ def handle_pipeline(orchestrator: Orchestrator, pipeline: PipelineExecutor, args
         data = pipeline.run_art_brief(topic)
         if data:
              _review_art_brief(data)
+    elif pipeline_type == "validate":
+        result = pipeline.run_asset_validation(topic)
+        console.print(f"[dim]result: {result}[/dim]")
+        if result:
+             _display_validation_result(result)
     else:
         console.print(f"[red]Unknown pipeline type '{pipeline_type}'. Use 'design' or 'research'.[/red]")
 
