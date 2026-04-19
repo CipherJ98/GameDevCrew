@@ -280,6 +280,53 @@ def _review_research_result(pipeline: PipelineExecutor, task: str, claude_output
     else:
         console.print("[dim]Output not saved.[/dim]")
 
+def _review_art_brief(data: dict):
+    """显示结构化美术brief，等待策划确认或修改"""
+    import json
+    
+    ambiguities = data.get("ambiguities", [])
+    
+    lines = []
+    lines.append(f"[bold]Character:[/bold] {data.get('character_name', '?')} ({data.get('gender', '?')})")
+    lines.append(f"[bold]Style:[/bold] {', '.join(data.get('style_tags', []))}")
+    lines.append(f"[bold]Colors:[/bold] {', '.join(data.get('color_palette', []))}")
+    lines.append(f"[bold]Materials:[/bold] {', '.join(data.get('material_keywords', []))}")
+    lines.append(f"[bold]Visual Cues:[/bold] {', '.join(data.get('personality_visual_cues', []))}")
+    lines.append(f"[bold]References:[/bold] {', '.join(data.get('reference_keywords', []))}")
+    
+    tc = data.get("technical_constraints", {})
+    lines.append(f"[bold]Tech:[/bold] poly={tc.get('poly_budget','?')} | tex={tc.get('texture_size','?')}")
+    
+    if ambiguities:
+        lines.append("\n[bold yellow]⚠ Ambiguities (needs clarification):[/bold yellow]")
+        for a in ambiguities:
+            lines.append(f"  [yellow]• {a}[/yellow]")
+    else:
+        lines.append("\n[green]✓ No ambiguities detected[/green]")
+    
+    console.print(Panel(
+        "\n".join(lines),
+        title="[bold white]🎨 Art Brief — Human Review Required[/bold white]",
+        border_style="cyan",
+        padding=(1, 2),
+    ))
+    
+    console.print("[dim]This brief requires your approval before going to the art team.[/dim]")
+    choice = _ask_choice("  [A]pprove and save   [R]eject", ["a", "r"])
+    
+    if choice == "a":
+        import json, os
+        from datetime import datetime
+        os.makedirs("data/art_briefs", exist_ok=True)
+        name = data.get("character_name", "unnamed").replace(" ", "_").lower()
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+        path = f"data/art_briefs/{name}_{ts}.json"
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        console.print(f"✅ Art brief saved to [cyan]{path}[/cyan]")
+    else:
+        console.print("❌ Rejected. Nothing saved.")
+
 
 def _ask_choice(prompt_text: str, valid: list[str]) -> str:
     """Keep asking until user gives a valid single-char choice."""
@@ -316,6 +363,10 @@ def handle_pipeline(orchestrator: Orchestrator, pipeline: PipelineExecutor, args
         claude_output = pipeline.run_research_first(topic)
         if claude_output is not None:
             _review_research_result(pipeline, topic, claude_output)
+    elif pipeline_type == "artbrief":
+        data = pipeline.run_art_brief(topic)
+        if data:
+             _review_art_brief(data)
     else:
         console.print(f"[red]Unknown pipeline type '{pipeline_type}'. Use 'design' or 'research'.[/red]")
 

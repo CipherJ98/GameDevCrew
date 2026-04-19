@@ -127,6 +127,23 @@ class PipelineExecutor:
         console.print(claude_output)
         console.print("[bold magenta][Pipeline] Research-first pipeline complete![/bold magenta]\n")
         return claude_output
+    
+    # ── Art Brifet Pipeline ────────────────────────────────
+    def run_art_brief(self,description:str):
+        """Game designer describes the plan -> structure the art brief -> pass to human review"""
+        from agents.artbrief_agent import ArtBriefAgent
+
+        console.print("\n[bold cyan][ArtBrief Pipeline][/bold cyan] Processing description...")
+
+        agent = ArtBriefAgent()
+        result = agent.run(description)
+
+        if not result["success"]:
+            console.print(f"[red]Failed to parse output: {result['error']}[/red]")
+            console.print(f"[dim]Raw output:\n{result['raw']}[/dim]")
+            return None
+
+        return result["data"]
 
     # ── Review / Save methods ────────────────────────────────
 
