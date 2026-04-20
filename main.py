@@ -360,7 +360,7 @@ def _display_validation_result(result: dict):
             border_style="yellow",
             padding=(1, 2),
         ))
-        
+
     # 有其他问题需要手动修复的文件
     manual_fix_needed = []
     for r in result.get("results", []):
@@ -422,6 +422,43 @@ def _display_validation_result(result: dict):
         else:
             console.print("[dim]跳过重命名[/dim]")
 
+def _display_vision_result(result: dict):
+    if not result.get("success"):
+        console.print(f"[red]{result.get('error')}[/red]")
+        return
+    
+    data = result["data"]
+    filename = result.get("file", "")
+    
+    checks = [
+        ("色调匹配", "color_match"),
+        ("视觉元素", "visual_elements"),
+        ("风格一致性", "style_consistency"),
+        ("是否偏题", "off_topic"),
+    ]
+    
+    lines = []
+    for label, key in checks:
+        check = data.get(key, {})
+        r = check.get("result", "?")
+        reason = check.get("reason", "")
+        icon = "[green]✓[/green]" if r == "pass" else "[red]✗[/red]"
+        lines.append(f"  {icon} [bold]{label}[/bold]: {reason}")
+    
+    overall = data.get("overall", "?")
+    summary = data.get("summary", "")
+    overall_color = "green" if overall == "pass" else "red"
+    
+    lines.append(f"\n  [{overall_color}]Overall: {overall.upper()}[/{overall_color}]")
+    lines.append(f"  [dim]{summary}[/dim]")
+    
+    console.print(Panel(
+        "\n".join(lines),
+        title=f"[bold white]👁 Vision Check — {filename}[/bold white]",
+        border_style="cyan",
+        padding=(1, 2),
+    ))
+
 
 def _ask_choice(prompt_text: str, valid: list[str]) -> str:
     """Keep asking until user gives a valid single-char choice."""
@@ -467,6 +504,17 @@ def handle_pipeline(orchestrator: Orchestrator, pipeline: PipelineExecutor, args
         console.print(f"[dim]result: {result}[/dim]")
         if result:
              _display_validation_result(result)
+    elif pipeline_type == "vision":
+        # 格式: @pipeline vision "图片路径|brief路径"
+        parts_input = topic.split("|")
+        if len(parts_input) != 2:
+            console.print("[red]Usage: @pipeline vision \"图片路径|brief路径\"[/red]")
+            return
+        image_path = parts_input[0].strip()
+        brief_path = parts_input[1].strip()
+        result = pipeline.run_vision_check(image_path, brief_path)
+        if result:
+            _display_vision_result(result)
     else:
         console.print(f"[red]Unknown pipeline type '{pipeline_type}'. Use 'design' or 'research'.[/red]")
 

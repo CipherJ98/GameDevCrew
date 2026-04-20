@@ -153,6 +153,23 @@ class PipelineExecutor:
         agent = AssetValidatorAgent()
         agent.run(folder_path)
         return agent.run(folder_path)
+    
+    # ── Art Vision Validation ────────────────────────────────
+    def run_vision_check(self, image_path: str, brief_path: str):
+        from agents.vision_validator_agent import VisionValidatorAgent
+        import json
+        
+        console.print("\n[bold cyan][Vision Check Pipeline][/bold cyan] Analyzing image...")
+        
+        if not os.path.exists(brief_path):
+            console.print(f"[red]Brief文件不存在: {brief_path}[/red]")
+            return None
+        
+        with open(brief_path, "r", encoding="utf-8") as f:
+            brief = json.load(f)
+        
+        agent = VisionValidatorAgent()
+        return agent.run(image_path, brief)
 
     # ── Review / Save methods ────────────────────────────────
 
