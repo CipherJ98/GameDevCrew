@@ -16,7 +16,30 @@ class AssetValidatorAgent:
             "power_of_two": True,
             "max_size_kb": 2048,
             "naming_pattern": r"^[a-z0-9_]+\.png$",
-            "metadata_required": ["prompt", "seed"]
+            # "metadata_required": ["prompt", "seed"]
+        }
+
+        self.rename_tool = {
+            "name":"rename_file",
+            "description":"将不规范命名的游戏资产文件重命名为符合规范的名称。只允许小写字母、数字和下划线，必须以.png结尾。" ,
+            "input_schema":{
+                "type":"object",
+                "properties":{
+                    "original_name":{
+                        "type":"string",
+                        "description":"原始文件名"
+                    },
+                    "suggested_name":{
+                        "type":"string",
+                        "description":"建议的规范文件名，只含小写字母/数字/下划线，以.png结尾"
+                    },
+                    "reason":{
+                        "type":"string",
+                        "description":"重命名原因，简短说明"
+                    },
+                },
+                "required":["original_name","suggested_name","reason"]
+            }
         }
 
     def _is_power_of_two(self, n: int) -> bool:
@@ -61,16 +84,16 @@ class AssetValidatorAgent:
                     if not self._is_power_of_two(h):
                         issues.append(f"高度{h}不是2的幂次")
 
-                # metadata检查
-                meta = img.info or {}
-                missing_meta = [
-                    k for k in self.rules["metadata_required"]
-                    if k not in meta
-                ]
-                if missing_meta:
-                    issues.append(f"缺少metadata字段: {', '.join(missing_meta)}")
-                else:
-                    info["metadata"] = {k: meta[k] for k in self.rules["metadata_required"]}
+                # # metadata检查
+                # meta = img.info or {}
+                # missing_meta = [
+                #     k for k in self.rules["metadata_required"]
+                #     if k not in meta
+                # ]
+                # if missing_meta:
+                #     issues.append(f"缺少metadata字段: {', '.join(missing_meta)}")
+                # else:
+                #     info["metadata"] = {k: meta[k] for k in self.rules["metadata_required"]}
 
         except Exception as e:
             issues.append(f"无法读取图像: {str(e)}")
@@ -81,6 +104,37 @@ class AssetValidatorAgent:
             "issues": issues,
             "info": info
         }
+    
+    def _fix_naming(self, folder_path: str, naming_issues: list[dict]) -> list[dict]:
+        """对命名不规范的文件，用tool calling生成建议名称并执行重命名"""
+        if not naming_issues:
+            return []
+
+        # 构建prompt
+        files_info = "\n".join([
+            f"- {item['file']}: {item['naming_issue']}"
+            for item in naming_issues
+        ])
+
+        response = self.client.messages.create(
+            model=self.model,
+            max_tokens=1024,
+            tools=[self.rename_tool],
+            tool_choice={"type": "any"},
+            system="你是游戏美术资产命名规范专家。根据原始文件名推断其内容，生成符合规范的英文命名。规范：只允许小写字母/数字/下划线，以.png结尾，格式如character_name_action_01.png。",
+            messages=[{
+                "role": "user",
+                "content": f"以下文件命名不规范，请为每个文件调用rename_file工具生成规范名称：\n{files_info}"
+            }]
+        )
+
+        # 提取tool use结果
+        rename_suggestions = []
+        for block in response.content:
+            if block.type == "tool_use" and block.name == "rename_file":
+                rename_suggestions.append(block.input)
+
+        return rename_suggestions
 
     def run(self, folder_path: str) -> dict:
         if not os.path.isdir(folder_path):
@@ -116,6 +170,35 @@ class AssetValidatorAgent:
                 }]
             )
             suggestion = response.content[0].text
+        
+            # 找出只有命名问题的文件（其他问题不自动修复）
+            naming_only = []
+            for r in failed:
+                has_naming = any("命名不规范" in issue for issue in r["issues"])
+                only_naming = all("命名不规范" in issue for issue in r["issues"])
+                if has_naming and only_naming:
+                    naming_only.append({
+                        "file": r["file"],
+                        "naming_issue": next(i for i in r["issues"] if "命名不规范" in i)
+                    })
+
+            # tool calling生成重命名建议
+            rename_suggestions = []
+            if naming_only:
+                rename_suggestions = self._fix_naming(folder_path, naming_only)
+
+            return {
+                "success": True,
+                "summary": {
+                    "total": len(results),
+                    "passed": len(passed),
+                    "failed": len(failed)
+                },
+                "results": results,
+                "suggestions": suggestion,
+                "rename_suggestions": rename_suggestions,
+                "folder_path": folder_path
+            }
 
         return {
             "success": True,

@@ -360,6 +360,67 @@ def _display_validation_result(result: dict):
             border_style="yellow",
             padding=(1, 2),
         ))
+        
+    # 有其他问题需要手动修复的文件
+    manual_fix_needed = []
+    for r in result.get("results", []):
+        if not r["passed"]:
+            has_naming = any("命名不规范" in issue for issue in r["issues"])
+            only_naming = all("命名不规范" in issue for issue in r["issues"])
+            if not only_naming:  # 有命名以外的问题
+                manual_fix_needed.append(r["file"])
+
+    if manual_fix_needed:
+        console.print(Panel(
+            "\n".join([f"  [red]• {f}[/red]" for f in manual_fix_needed]) +
+            "\n\n[dim]以上文件存在格式/尺寸/色彩模式等问题，请手动修复后重新提交。[/dim]",
+            title="[bold red]⚠️ 需要手动修复后重新提交[/bold red]",
+            border_style="red",
+            padding=(1, 2),
+        ))
+
+    # 处理重命名建议
+    rename_suggestions = result.get("rename_suggestions", [])
+    folder_path = result.get("folder_path", "")
+
+    if rename_suggestions:
+        console.print(Panel(
+            "\n".join([
+                f"  [cyan]{s['original_name']}[/cyan] → [green]{s['suggested_name']}[/green]\n"
+                f"  [dim]{s['reason']}[/dim]"
+                for s in rename_suggestions
+            ]),
+            title="[bold white]✏️ 命名修复建议 (Tool Calling)[/bold white]",
+            border_style="green",
+            padding=(1, 2),
+        ))
+
+        choice = _ask_choice("执行重命名？[A]ll全部  [S]elect逐个确认  [N]o跳过", ["a", "s", "n"])
+
+        if choice == "a":
+            for s in rename_suggestions:
+                old = os.path.join(folder_path, s["original_name"])
+                new = os.path.join(folder_path, s["suggested_name"])
+                if os.path.exists(old):
+                    os.rename(old, new)
+                    console.print(f"  ✅ [green]{s['original_name']}[/green] → [cyan]{s['suggested_name']}[/cyan]")
+
+        elif choice == "s":
+            for s in rename_suggestions:
+                console.print(f"\n  [cyan]{s['original_name']}[/cyan] → [green]{s['suggested_name']}[/green]")
+                console.print(f"  [dim]{s['reason']}[/dim]")
+                confirm = _ask_choice("  执行？[Y]es  [N]o", ["y", "n"])
+                if confirm == "y":
+                    old = os.path.join(folder_path, s["original_name"])
+                    new = os.path.join(folder_path, s["suggested_name"])
+                    if os.path.exists(old):
+                        os.rename(old, new)
+                        console.print(f"  ✅ 已重命名")
+                else:
+                    console.print(f"  [dim]跳过[/dim]")
+
+        else:
+            console.print("[dim]跳过重命名[/dim]")
 
 
 def _ask_choice(prompt_text: str, valid: list[str]) -> str:
